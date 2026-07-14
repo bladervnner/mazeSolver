@@ -100,8 +100,8 @@ def findStart(maze: list[list[str]]):
     startPoint = Point(x,y)
     return startPoint
 
-# This method will be the maze solver, with the paramater the maze
-def mazeSolver(maze: list[list[str]]):
+# This method will be use dfs to solve the maze, with the paramater the maze
+def dfs(maze: list[list[str]]):
     # creating Stack to hold Points visited
     pointsVisited = deque() # using deque as a stack to hold Points
     pointsVisited.append(findStart(maze)) # appending the start point to the stack
@@ -156,7 +156,68 @@ def mazeSolver(maze: list[list[str]]):
             print(maze[i][j], end="")
 
     print(f"Iterations: {iterations}")
-            
+
+
+# This method will be use bfs to solve the maze, with the paramater the maze
+def bfs(maze: list[list[str]]):
+    # creating Queue to hold Points visited
+    pointsVisited = deque() # using deque as a queue to hold Points
+    pointsVisited.append(findStart(maze)) # appending the start point to the queue
+    maze[pointsVisited[0].X][pointsVisited[0].Y] = '.' # changing our start point to a '.' to show we have visited it
+    iterations = 0
+
+    while True:
+        iterations +=1
+        currPoint = pointsVisited.popleft() # pop the first point visited
+        
+        if maze[currPoint.X][currPoint.Y] == 'f':
+            print("Maze solved!")
+            print(f"Iterations: {iterations}")
+            break
+        
+        ## Interestingly enough, chaning which we check first, changes the amount of iterations it takes to solve the maze
+        ## Different algorithms will likely yield different iterations obviously, but interesting to note
+        ## Adding delay and displaying maze to make it visual, but will slow down the algorithm significantly
+        else:
+            if(maze[currPoint.X][currPoint.Y] == ' '):
+                maze[currPoint.X][currPoint.Y] = '.'
+                os.system('cls')      # Windows
+                displayMaze(maze)
+                time.sleep(0.1) # 0.2 seconds delay to make it visual, but will slow down the algorithm significantly
+   
+            if maze[currPoint.X - 1][currPoint.Y] == ' ' or maze[currPoint.X - 1][currPoint.Y] == 'f':
+                pointsVisited.append(Point(currPoint.X - 1, currPoint.Y))
+                os.system('cls')    
+                displayMaze(maze)
+                time.sleep(0.1)               
+
+            if maze[currPoint.X + 1][currPoint.Y] == ' ' or maze[currPoint.X + 1][currPoint.Y] == 'f':
+                pointsVisited.append(Point(currPoint.X + 1, currPoint.Y))
+                os.system('cls')      
+                displayMaze(maze)
+                time.sleep(0.1)
+            if maze[currPoint.X][currPoint.Y - 1] == ' ' or maze[currPoint.X][currPoint.Y - 1] == 'f':
+                pointsVisited.append(Point(currPoint.X, currPoint.Y - 1))
+                os.system('cls')      
+                displayMaze(maze)
+                time.sleep(0.1)
+
+            if maze[currPoint.X][currPoint.Y + 1] == ' ' or maze[currPoint.X][currPoint.Y + 1] == 'f':
+                pointsVisited.append(Point(currPoint.X, currPoint.Y + 1))
+                os.system('cls')     
+                displayMaze(maze)
+                time.sleep(0.1)
+
+
+    for i in range(len(maze)):
+        for j in range(len(maze[i])):
+            print(maze[i][j], end="")
+
+    print(f"Iterations: {iterations}")
+
+
+# This method will be use dijkstra to solve the maze, with the paramater the maze
+def dijkstra(maze: list[list[str]]):
 
             
 # Now will run the code entirely
@@ -186,6 +247,10 @@ while True:
     startPoint = findStart(maze)
     print(f"Start point found at: {startPoint}")
 
-    print("\nSolving maze...\n")
-    mazeSolver(maze)
+    print("\nSolving maze using depth first search algorithm...\n")
+    dfs(maze)
+
+    print("\nSolving maze using breadth first search algorithm...\n")
+    maze = readMaze(p)
+    bfs(maze)
 
