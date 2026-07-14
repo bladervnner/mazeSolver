@@ -33,14 +33,26 @@ class Point:
 
     # TODO: Add functionality to Point Class like finding distance, etc in case we need help implementing A* or Dijkstra's algorithm for maze solving
 
+
     def __eq__(self, other):
         if isinstance(other, Point):
             return self.X == other.X and self.Y == other.Y
+    
+    def __hash__(self):
+        return hash((self.X, self.Y))
+    
+    def __lt__(self, other):
+        if isinstance(other, Point):
+            return (self.X, self.Y) < (other.X, other.Y)
         
     def distance(self, other):
         dx = self.X - other.X
         dy = self.Y - other.Y
         return math.sqrt((dx * dx) + (dy * dy))
+    
+    #adding manhattan distance helper function to help with A* implementation
+    def manhattan_distance(self, other):
+        return abs(self.X - other.X) + abs(self.Y - other.Y)
 
 
 # Function param takes an int chosen by user and reads the maze and returnds a 2D array of file as maze
@@ -102,10 +114,24 @@ def findStart(maze: list[list[str]]):
     startPoint = Point(x,y)
     return startPoint
 
+# Find the finish point
+## This method passes our maze and finds the finish point returning them as a Point 
+def findFinish(maze: list[list[str]]):
+    x = 0
+    y = 0
+
+    for i in range(len(maze)):
+        for j in range(len(maze[i])):
+            if maze[i][j] == 'f':
+                x = i
+                y = j
+    
+    finishPoint = Point(x,y)
+    return finishPoint
+
 #creating helper function to get the neighbors of a point in the maze to modularize the code
 
 def getNeighbors(point: Point, maze: list[list[str]]):
-            currPoint = point
             neighbors = []
 
             ''' This is not needed now
@@ -115,20 +141,20 @@ def getNeighbors(point: Point, maze: list[list[str]]):
             '''
 
             # Checks the point above the current point
-            if maze[currPoint.X - 1][currPoint.Y] == ' ' or maze[currPoint.X - 1][currPoint.Y] == 'f':
-                neighbors.append(Point(currPoint.X - 1, currPoint.Y))            
+            if maze[point.X - 1][point.Y] == ' ' or maze[point.X - 1][point.Y] == 'f':
+                neighbors.append(Point(point.X - 1, point.Y))            
 
             # Checks the point below the current point
-            if maze[currPoint.X + 1][currPoint.Y] == ' ' or maze[currPoint.X + 1][currPoint.Y] == 'f':
-                neighbors.append(Point(currPoint.X + 1, currPoint.Y))
+            if maze[point.X + 1][point.Y] == ' ' or maze[point.X + 1][point.Y] == 'f':
+                neighbors.append(Point(point.X + 1, point.Y))
 
             # Checks the point to the left of the current point
-            if maze[currPoint.X][currPoint.Y - 1] == ' ' or maze[currPoint.X][currPoint.Y - 1] == 'f':
-                neighbors.append(Point(currPoint.X, currPoint.Y - 1))
+            if maze[point.X][point.Y - 1] == ' ' or maze[point.X][point.Y - 1] == 'f':
+                neighbors.append(Point(point.X, point.Y - 1))
             
             # Checks the point to the right of the current point
-            if maze[currPoint.X][currPoint.Y + 1] == ' ' or maze[currPoint.X][currPoint.Y + 1] == 'f':
-                neighbors.append(Point(currPoint.X, currPoint.Y + 1))
+            if maze[point.X][point.Y + 1] == ' ' or maze[point.X][point.Y + 1] == 'f':
+                neighbors.append(Point(point.X, point.Y + 1))
 
             return neighbors
 
@@ -146,13 +172,14 @@ def visitPoint(point: Point, maze: list[list[str]]):
 # This method will be use dfs to solve the maze, with the paramater the maze
 def dfs(maze: list[list[str]]):
     # creating Stack to hold Points visited
-    pointsVisited = deque() # using deque as a stack to hold Points
-    pointsVisited.append(findStart(maze)) # appending the start point to the stack
+    stack = deque() # using deque as a stack to hold Points
+    stack.append(findStart(maze)) # appending the start point to the stack
+    
     iterations = 0
 
-    while pointsVisited:
+    while stack:
         iterations +=1
-        currPoint = pointsVisited.pop() # pop the last point visited
+        currPoint = stack.pop() # pop the last point visited
         
         if maze[currPoint.X][currPoint.Y] == 'f':
             print("Maze solved!")
@@ -164,12 +191,9 @@ def dfs(maze: list[list[str]]):
         neighbors = getNeighbors(currPoint, maze) # get the neighbors of the current point
 
         for neighbor in neighbors:
-            pointsVisited.append(neighbor) # add the neighbor to the stack
+            stack.append(neighbor) # add the neighbor to the stack
 
 
-    for i in range(len(maze)):
-        for j in range(len(maze[i])):
-            print(maze[i][j], end="")
 
     print(f"Iterations: {iterations}")
 
@@ -177,14 +201,13 @@ def dfs(maze: list[list[str]]):
 # This method will be use bfs to solve the maze, with the paramater the maze
 def bfs(maze: list[list[str]]):
     # creating Queue to hold Points visited
-    pointsVisited = deque() # using deque as a queue to hold Points
-    pointsVisited.append(findStart(maze)) # appending the start point to the queue
-    maze[pointsVisited[0].X][pointsVisited[0].Y] = '.' # changing our start point to a '.' to show we have visited it
+    queue = deque() # using deque as a queue to hold Points
+    queue.append(findStart(maze)) # appending the start point to the queue
     iterations = 0
 
-    while pointsVisited:
+    while queue:
         iterations +=1
-        currPoint = pointsVisited.popleft() # pop the first point visited
+        currPoint = queue.popleft() # pop the first point visited
         
         if maze[currPoint.X][currPoint.Y] == 'f':
             print("Maze solved!")
@@ -196,33 +219,106 @@ def bfs(maze: list[list[str]]):
         neighbors = getNeighbors(currPoint, maze) # get the neighbors of the current point
 
         for neighbor in neighbors:
-            pointsVisited.append(neighbor) # add the neighbor to the stack
+            queue.append(neighbor) # add the neighbor to the queue
 
-
-    for i in range(len(maze)):
-        for j in range(len(maze[i])):
-            print(maze[i][j], end="")
 
     print(f"Iterations: {iterations}")
 
 
 # This method will be use dijkstra to solve the maze, with the paramater the maze
-#def dijkstra(maze: list[list[str]]):
+def dijkstra(maze: list[list[str]]):
+    pQueue = [] # using heapq as a priority queue to hold Points
+    startPoint = findStart(maze)
+    
+    distances = {}
 
+    distances[startPoint] = 0
+
+    heapq.heappush(pQueue, (0, startPoint)) # appending the start point to the priority queue with distance 0
+
+    iterations = 0
+
+    while pQueue:
+        iterations +=1
+
+        currDistance, currPoint = heapq.heappop(pQueue) # pop the point with the smallest distance
+        if currDistance > distances[currPoint]:
+            continue # if we have previously found a shorter path to the current pooint
+
+        if maze[currPoint.X][currPoint.Y] == 'f':
+            print("Maze solved!")
+            print(f"Iterations: {iterations}")
+            print(f"Shortest path distance: {currDistance}")
+            break
+
+        visitPoint(currPoint, maze) # mark the current point as visited
+
+        neighbors = getNeighbors(currPoint, maze) # get neighbors of the current point
+
+        for neighbor in neighbors:
+            newDistance = currDistance + 1 # each step is distance 1
+
+            if neighbor not in distances or newDistance < distances[neighbor]:
+                distances[neighbor] = newDistance
+                heapq.heappush(pQueue, (newDistance, neighbor)) # add neighbor to the priority queue with updated distance
+
+    print(f"Iterations: {iterations}")
+
+# Now implementiong astar
+def astar(maze: list[list[str]]):
+    pQueue = [] # using heapq as a priority queue to hold Points
+    startPoint = findStart(maze)
+    
+    distances = {}
+
+    distances[startPoint] = 0
+
+    heapq.heappush(pQueue, (0, startPoint)) # appending the start point to the priority queue with distance 0
+
+    iterations = 0
+
+    finishPoint = findFinish(maze)
+    while pQueue:
+        iterations +=1
+
+        priority, currPoint = heapq.heappop(pQueue) # pop the point with the smallest distance
+        currDistance = distances[currPoint]
+
+        if maze[currPoint.X][currPoint.Y] == 'f':
+            print("Maze solved!")
+            print(f"Iterations: {iterations}")
+            print(f"Shortest path distance: {currDistance}")
+            break
+
+        visitPoint(currPoint, maze) # mark the current point as visited
+
+        neighbors = getNeighbors(currPoint, maze) # get neighbors of the current point
+
+        for neighbor in neighbors:
+            newDistance = currDistance + 1 # each step is distance 1
+            heuristic = neighbor.manhattan_distance(finishPoint) # calculate heuristic distance to finish point
+            priority = newDistance + heuristic # priority is the sum of the distance and heuristic
+
+            if neighbor not in distances or newDistance < distances[neighbor]:
+                distances[neighbor] = newDistance
+                heapq.heappush(pQueue, (priority, neighbor)) # add neighbor to the priority queue with updated priority
+
+    print(f"Iterations: {iterations}")
+    
             
 # Now will run the code entirely
 
 while True:
-    p = input("\nWhich maze would you like to solve? (1-3) or type 0 to quit: ")
+    p = input("\nWhich maze would you like to solve? (1-4) or type 0 to quit: ")
 
     if not p.isdigit():
-        print("Please enter a valid number between 1-3 or 0 to quit.")
+        print("Please enter a valid number between 1-4 or 0 to quit.")
         continue
 
     p = int(p)
 
-    if p < 0 or p > 3:
-        print("Please enter a valid number between 1-3 or 0 to quit.")
+    if p < 0 or p > 4:
+        print("Please enter a valid number between 1-4 or 0 to quit.")
         continue
 
     if p == 0:
@@ -243,4 +339,12 @@ while True:
     print("\nSolving maze using breadth first search algorithm...\n")
     maze = readMaze(p)
     bfs(maze)
+
+    print("\nSolving maze using Dijkstra's algorithm...\n")
+    maze = readMaze(p)
+    dijkstra(maze)
+
+    print("\nSolving maze using A* algorithm...\n")
+    maze = readMaze(p)
+    astar(maze)
 
