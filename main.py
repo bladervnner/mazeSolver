@@ -5,6 +5,8 @@ import time
 import os
 import math
 
+ANIMATE = True # set to False to turn off animation in the function visitPoint
+
 class Point:
     '''Creating a point class in coordinate format using x and y'''
     '''This works well with our maze since it is a 2D array and we can use the x and y coordinates to find the point in the maze'''
@@ -32,7 +34,7 @@ class Point:
     # TODO: Add functionality to Point Class like finding distance, etc in case we need help implementing A* or Dijkstra's algorithm for maze solving
 
     def __eq__(self, other):
-        if instance(other, Point):
+        if isinstance(other, Point):
             return self.X == other.X and self.Y == other.Y
         
     def distance(self, other):
@@ -100,15 +102,55 @@ def findStart(maze: list[list[str]]):
     startPoint = Point(x,y)
     return startPoint
 
+#creating helper function to get the neighbors of a point in the maze to modularize the code
+
+def getNeighbors(point: Point, maze: list[list[str]]):
+            currPoint = point
+            neighbors = []
+
+            ''' This is not needed now
+            # This checks if current point is a space
+            if(maze[currPoint.X][currPoint.Y] == ' '):
+                neighbors.append(Point(currPoint.X, currPoint.Y))
+            '''
+
+            # Checks the point above the current point
+            if maze[currPoint.X - 1][currPoint.Y] == ' ' or maze[currPoint.X - 1][currPoint.Y] == 'f':
+                neighbors.append(Point(currPoint.X - 1, currPoint.Y))            
+
+            # Checks the point below the current point
+            if maze[currPoint.X + 1][currPoint.Y] == ' ' or maze[currPoint.X + 1][currPoint.Y] == 'f':
+                neighbors.append(Point(currPoint.X + 1, currPoint.Y))
+
+            # Checks the point to the left of the current point
+            if maze[currPoint.X][currPoint.Y - 1] == ' ' or maze[currPoint.X][currPoint.Y - 1] == 'f':
+                neighbors.append(Point(currPoint.X, currPoint.Y - 1))
+            
+            # Checks the point to the right of the current point
+            if maze[currPoint.X][currPoint.Y + 1] == ' ' or maze[currPoint.X][currPoint.Y + 1] == 'f':
+                neighbors.append(Point(currPoint.X, currPoint.Y + 1))
+
+            return neighbors
+
+# Create helper functiont to mark if a point has been visited in the maze to modularize the code
+def visitPoint(point: Point, maze: list[list[str]]):
+    if maze[point.X][point.Y] == ' ':
+        maze[point.X][point.Y] = '.'
+    
+    # will be benchmarking so may need to remove the displayMaze and time.sleep for performance testing
+    if ANIMATE:
+        os.system('cls')     
+        displayMaze(maze)
+        time.sleep(0.1) # 0.2 seconds delay to make it visual, but will slow down the algorithm significantly
+
 # This method will be use dfs to solve the maze, with the paramater the maze
 def dfs(maze: list[list[str]]):
     # creating Stack to hold Points visited
     pointsVisited = deque() # using deque as a stack to hold Points
     pointsVisited.append(findStart(maze)) # appending the start point to the stack
-    maze[pointsVisited[0].X][pointsVisited[0].Y] = '.' # changing our start point to a '.' to show we have visited it
     iterations = 0
 
-    while True:
+    while pointsVisited:
         iterations +=1
         currPoint = pointsVisited.pop() # pop the last point visited
         
@@ -117,38 +159,12 @@ def dfs(maze: list[list[str]]):
             print(f"Iterations: {iterations}")
             break
         
-        ## Interestingly enough, chaning which we check first, changes the amount of iterations it takes to solve the maze
-        ## Different algorithms will likely yield different iterations obviously, but interesting to note
-        ## Adding delay and displaying maze to make it visual, but will slow down the algorithm significantly
-        else:
-            if(maze[currPoint.X][currPoint.Y] == ' '):
-                maze[currPoint.X][currPoint.Y] = '.'
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1) # 0.2 seconds delay to make it visual, but will slow down the algorithm significantly
-   
-            if maze[currPoint.X - 1][currPoint.Y] == ' ' or maze[currPoint.X - 1][currPoint.Y] == 'f':
-                pointsVisited.append(Point(currPoint.X - 1, currPoint.Y))
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1)               
+        visitPoint(currPoint, maze) # mark the current point as visited
 
-            if maze[currPoint.X + 1][currPoint.Y] == ' ' or maze[currPoint.X + 1][currPoint.Y] == 'f':
-                pointsVisited.append(Point(currPoint.X + 1, currPoint.Y))
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1)
-            if maze[currPoint.X][currPoint.Y - 1] == ' ' or maze[currPoint.X][currPoint.Y - 1] == 'f':
-                pointsVisited.append(Point(currPoint.X, currPoint.Y - 1))
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1)
+        neighbors = getNeighbors(currPoint, maze) # get the neighbors of the current point
 
-            if maze[currPoint.X][currPoint.Y + 1] == ' ' or maze[currPoint.X][currPoint.Y + 1] == 'f':
-                pointsVisited.append(Point(currPoint.X, currPoint.Y + 1))
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1)
+        for neighbor in neighbors:
+            pointsVisited.append(neighbor) # add the neighbor to the stack
 
 
     for i in range(len(maze)):
@@ -166,7 +182,7 @@ def bfs(maze: list[list[str]]):
     maze[pointsVisited[0].X][pointsVisited[0].Y] = '.' # changing our start point to a '.' to show we have visited it
     iterations = 0
 
-    while True:
+    while pointsVisited:
         iterations +=1
         currPoint = pointsVisited.popleft() # pop the first point visited
         
@@ -175,38 +191,12 @@ def bfs(maze: list[list[str]]):
             print(f"Iterations: {iterations}")
             break
         
-        ## Interestingly enough, chaning which we check first, changes the amount of iterations it takes to solve the maze
-        ## Different algorithms will likely yield different iterations obviously, but interesting to note
-        ## Adding delay and displaying maze to make it visual, but will slow down the algorithm significantly
-        else:
-            if(maze[currPoint.X][currPoint.Y] == ' '):
-                maze[currPoint.X][currPoint.Y] = '.'
-                os.system('cls')      # Windows
-                displayMaze(maze)
-                time.sleep(0.1) # 0.2 seconds delay to make it visual, but will slow down the algorithm significantly
-   
-            if maze[currPoint.X - 1][currPoint.Y] == ' ' or maze[currPoint.X - 1][currPoint.Y] == 'f':
-                pointsVisited.append(Point(currPoint.X - 1, currPoint.Y))
-                os.system('cls')    
-                displayMaze(maze)
-                time.sleep(0.1)               
+        visitPoint(currPoint, maze) # mark the current point as visited
 
-            if maze[currPoint.X + 1][currPoint.Y] == ' ' or maze[currPoint.X + 1][currPoint.Y] == 'f':
-                pointsVisited.append(Point(currPoint.X + 1, currPoint.Y))
-                os.system('cls')      
-                displayMaze(maze)
-                time.sleep(0.1)
-            if maze[currPoint.X][currPoint.Y - 1] == ' ' or maze[currPoint.X][currPoint.Y - 1] == 'f':
-                pointsVisited.append(Point(currPoint.X, currPoint.Y - 1))
-                os.system('cls')      
-                displayMaze(maze)
-                time.sleep(0.1)
+        neighbors = getNeighbors(currPoint, maze) # get the neighbors of the current point
 
-            if maze[currPoint.X][currPoint.Y + 1] == ' ' or maze[currPoint.X][currPoint.Y + 1] == 'f':
-                pointsVisited.append(Point(currPoint.X, currPoint.Y + 1))
-                os.system('cls')     
-                displayMaze(maze)
-                time.sleep(0.1)
+        for neighbor in neighbors:
+            pointsVisited.append(neighbor) # add the neighbor to the stack
 
 
     for i in range(len(maze)):
@@ -217,7 +207,7 @@ def bfs(maze: list[list[str]]):
 
 
 # This method will be use dijkstra to solve the maze, with the paramater the maze
-def dijkstra(maze: list[list[str]]):
+#def dijkstra(maze: list[list[str]]):
 
             
 # Now will run the code entirely
