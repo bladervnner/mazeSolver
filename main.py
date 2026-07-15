@@ -146,19 +146,19 @@ def getNeighbors(point: Point, maze: list[list[str]]):
             '''
 
             # Checks the point above the current point
-            if maze[point.X - 1][point.Y] == ' ' or maze[point.X - 1][point.Y] == 'f':
+            if maze[point.X - 1][point.Y] == ' ' or maze[point.X - 1][point.Y] == 'f' or maze[point.X - 1][point.Y] == '~':
                 neighbors.append(Point(point.X - 1, point.Y))            
 
             # Checks the point below the current point
-            if maze[point.X + 1][point.Y] == ' ' or maze[point.X + 1][point.Y] == 'f':
+            if maze[point.X + 1][point.Y] == ' ' or maze[point.X + 1][point.Y] == 'f' or maze[point.X + 1][point.Y] == '~':
                 neighbors.append(Point(point.X + 1, point.Y))
 
             # Checks the point to the left of the current point
-            if maze[point.X][point.Y - 1] == ' ' or maze[point.X][point.Y - 1] == 'f':
+            if maze[point.X][point.Y - 1] == ' ' or maze[point.X][point.Y - 1] == 'f' or maze[point.X][point.Y - 1] == '~':
                 neighbors.append(Point(point.X, point.Y - 1))
             
             # Checks the point to the right of the current point
-            if maze[point.X][point.Y + 1] == ' ' or maze[point.X][point.Y + 1] == 'f':
+            if maze[point.X][point.Y + 1] == ' ' or maze[point.X][point.Y + 1] == 'f' or maze[point.X][point.Y + 1] == '~':
                 neighbors.append(Point(point.X, point.Y + 1))
 
             return neighbors
@@ -167,13 +167,17 @@ def getNeighbors(point: Point, maze: list[list[str]]):
 def visitPoint(point: Point, maze: list[list[str]]):
     if maze[point.X][point.Y] == ' ':
         maze[point.X][point.Y] = '.'
+    elif maze[point.X][point.Y] == '~':
+        maze[point.X][point.Y] = '='
     
     # will be benchmarking so may need to remove the displayMaze and time.sleep for performance testing
     if ANIMATE:
         os.system('cls')     
         displayMaze(maze)
         time.sleep(0.1) # 0.2 seconds delay to make it visual, but will slow down the algorithm significantly
-def shortestPath(parent: dict, startPoint: Point, finishPoint: Point, maze: list[list[str]]):
+def shortestPath(parent: dict, startPoint: Point, finishPoint: Point, maze: list[list[str]], originalMaze = None):
+    pathCost = 0
+    pathLength = 0
     currPoint = finishPoint
     pathLength = 0 # metrics
 
@@ -181,14 +185,20 @@ def shortestPath(parent: dict, startPoint: Point, finishPoint: Point, maze: list
         if maze[currPoint.X][currPoint.Y] != 'f':
             maze[currPoint.X][currPoint.Y] = '+'
 
+        if originalMaze is not None:
+                    if originalMaze[currPoint.X][currPoint.Y] == '~':
+                        pathCost += 10
+                    else:
+                        pathCost += 1
+
         currPoint = parent[currPoint] 
         pathLength += 1
 
     maze[startPoint.X][startPoint.Y] = 's' # mark the start point with 's'
     
-    return pathLength # return the length of the shortest path to study metrics
+    return pathLength, pathCost # return the length and cost of the shortest path to study metrics
 
-def countOpenCells(maze: list[list[str]]):
+def countWalkableCells(maze: list[list[str]]):
     count = 0
     for row in maze:
         for cell in row:
@@ -199,7 +209,8 @@ def countOpenCells(maze: list[list[str]]):
 # This method will be use dfs to solve the maze, with the paramater the maze
 def dfs(maze: list[list[str]]):
     startPoint = findStart(maze)
-    openCells = countOpenCells(maze)
+    originalMaze = [row[:] for row in maze] # make a copy of the original maze to use for path cost calculation
+    walkableCells = countWalkableCells(maze)
 
     stack = deque([startPoint]) # using deque as a stack to hold Points
     discovered = {startPoint} # dict to hold discovered Points
@@ -225,12 +236,12 @@ def dfs(maze: list[list[str]]):
             solved = True
             finishPoint = currPoint
 
-            pathLength = shortestPath(parent, findStart(maze), finishPoint, maze) # mark the shortest  path
+            pathLength, pathCost = shortestPath(parent, findStart(maze), finishPoint, maze, originalMaze) # mark the shortest  path
 
             # print("Maze solved!")
             # print(f"Shortest path length: {pathLength}")
 
-            # displayMaze(maze) # display the maze with the shortest path marked
+            displayMaze(maze) # display the maze with the shortest path marked
             break
         
         visitPoint(currPoint, maze) # mark the current point as visited
@@ -245,8 +256,8 @@ def dfs(maze: list[list[str]]):
 
     endTime = time.perf_counter() - startTime # for benchmarking
 
-    if openCells > 0:
-        explorationRatio = (nodesExplored / openCells) * 100
+    if walkableCells > 0:
+        explorationRatio = (nodesExplored / walkableCells) * 100
     else:
         explorationRatio = 0
 
@@ -257,8 +268,9 @@ def dfs(maze: list[list[str]]):
         "nodesExplored": nodesExplored,
         "pathLength": pathLength,
         "maxFrontier": maxFrontier,
-        "openCells": openCells,
+        "walkableCells": walkableCells,
         "explorationRatio": explorationRatio,
+        "pathCost": pathCost,
         "runtime": endTime * 1000  # make it readable in milliseconds
     }
     
@@ -268,7 +280,8 @@ def dfs(maze: list[list[str]]):
 # This method will be use bfs to solve the maze, with the paramater the maze
 def bfs(maze: list[list[str]]):
     startPoint = findStart(maze)
-    openCells = countOpenCells(maze)
+    originalMaze = [row[:] for row in maze] # make a copy of the original maze to use for path cost calculation
+    walkableCells = countWalkableCells(maze)
 
     queue = deque([startPoint]) # using deque as a stack to hold Points
     discovered = {startPoint} # dict to hold discovered Points
@@ -294,12 +307,12 @@ def bfs(maze: list[list[str]]):
             solved = True
             finishPoint = currPoint
 
-            pathLength = shortestPath(parent, findStart(maze), finishPoint, maze) # mark the shortest  path
+            pathLength, pathCost = shortestPath(parent, findStart(maze), finishPoint, maze, originalMaze) # mark the shortest  path
 
             # print("Maze solved!")
             # print(f"Shortest path length: {pathLength}")
 
-            # displayMaze(maze) # display the maze with the shortest path marked
+            displayMaze(maze) # display the maze with the shortest path marked
             break
         
         visitPoint(currPoint, maze) # mark the current point as visited
@@ -314,8 +327,8 @@ def bfs(maze: list[list[str]]):
 
     endTime = time.perf_counter() - startTime # for benchmarking
 
-    if openCells > 0:
-        explorationRatio = (nodesExplored / openCells) * 100
+    if walkableCells > 0:
+        explorationRatio = (nodesExplored / walkableCells) * 100
     else:
         explorationRatio = 0
 
@@ -326,8 +339,9 @@ def bfs(maze: list[list[str]]):
         "nodesExplored": nodesExplored,
         "pathLength": pathLength,
         "maxFrontier": maxFrontier,
-        "openCells": openCells,
+        "walkableCells": walkableCells,
         "explorationRatio": explorationRatio,
+        "pathCost": pathCost,
         "runtime": endTime * 1000  # make it readable in milliseconds
     }
     
@@ -336,7 +350,7 @@ def bfs(maze: list[list[str]]):
 
 # This method will be use dijkstra to solve the maze, with the paramater the maze
 def dijkstra(maze: list[list[str]]):
-    openCells = countOpenCells(maze)
+    walkableCells = countWalkableCells(maze)
     nodesExplored = 0
     maxFrontier = 0
     solved = False
@@ -347,6 +361,7 @@ def dijkstra(maze: list[list[str]]):
     parent = {}
     pQueue = [] # using heapq as a priority queue to hold Points
     startPoint = findStart(maze)
+    originalMaze = [row[:] for row in maze] # make a copy of the original maze to use for path cost calculation
     
     distances = {}
 
@@ -371,10 +386,10 @@ def dijkstra(maze: list[list[str]]):
             #print(f"Iterations: {iterations}")
             # print(f"Shortest path distance: {currDistance}")
             solved = True
-            pathLength = shortestPath(parent, startPoint, currPoint, maze)
+            pathLength, _ = shortestPath(parent, startPoint, currPoint, maze, originalMaze) # mark the shortest path
             pathCost = currDistance
 
-            # displayMaze(maze) # display the maze with the shortest path
+            displayMaze(maze) # display the maze with the shortest path
             break
 
         visitPoint(currPoint, maze) # mark the current point as visited
@@ -382,7 +397,11 @@ def dijkstra(maze: list[list[str]]):
         neighbors = getNeighbors(currPoint, maze) # get neighbors of the current point
 
         for neighbor in neighbors:
-            newDistance = currDistance + 1 # each step is distance 1
+            if maze[neighbor.X][neighbor.Y] == '~':
+                moveCost = 10
+            else:
+                moveCost = 1
+            newDistance = currDistance + moveCost
 
             if neighbor not in distances or newDistance < distances[neighbor]:
                 distances[neighbor] = newDistance
@@ -391,8 +410,8 @@ def dijkstra(maze: list[list[str]]):
 
     endTime = time.perf_counter() - startTime # for benchmarking
 
-    if openCells > 0:
-        explorationRatio = (nodesExplored / openCells) * 100
+    if walkableCells > 0:
+        explorationRatio = (nodesExplored / walkableCells) * 100
     else:
         explorationRatio = 0
 
@@ -404,7 +423,7 @@ def dijkstra(maze: list[list[str]]):
         "pathLength": pathLength,
         "pathCost": pathCost,  # Get the cost to reach the finish point, if it exists
         "maxFrontier": maxFrontier,
-        "openCells": openCells,
+        "walkableCells": walkableCells,
         "explorationRatio": explorationRatio,
         "runtime": endTime * 1000  # make it readable in milliseconds
     }
@@ -413,7 +432,7 @@ def dijkstra(maze: list[list[str]]):
 
 # Now implementing astar
 def astar(maze: list[list[str]]):
-    openCells = countOpenCells(maze)
+    walkableCells = countWalkableCells(maze)
     nodesExplored = 0
     maxFrontier = 0
     solved = False
@@ -424,6 +443,7 @@ def astar(maze: list[list[str]]):
     parent = {}
     pQueue = [] # using heapq as a priority queue to hold Points
     startPoint = findStart(maze)
+    originalMaze = [row[:] for row in maze] # make a copy of the original maze to use for path cost calculation
     finishPoint = findFinish(maze)
     distances = {}
 
@@ -447,11 +467,10 @@ def astar(maze: list[list[str]]):
             # print("Maze solved!")
             # print(f"Iterations: {iterations}")
             # print(f"Shortest path distance: {currDistance}")
-
-            # displayMaze(maze) # display the maze with the shortest path
             solved = True
-            pathLength = shortestPath(parent, startPoint, currPoint, maze)
+            pathLength, _ = shortestPath(parent, startPoint, currPoint, maze, originalMaze) # mark the shortest path, using _ to ignore the path cost, will calculate it separately
             pathCost = currDistance
+            displayMaze(maze) # display the maze with the shortest path
             break
 
         visitPoint(currPoint, maze) # mark the current point as visited
@@ -459,7 +478,12 @@ def astar(maze: list[list[str]]):
         neighbors = getNeighbors(currPoint, maze) # get neighbors of the current point
 
         for neighbor in neighbors:
-            newDistance = currDistance + 1 # each step is distance 1
+            if maze[neighbor.X][neighbor.Y] == '~':
+                moveCost = 10
+            else:
+                moveCost = 1
+            newDistance = currDistance + moveCost
+
             heuristic = neighbor.manhattan_distance(finishPoint) # calculate heuristic distance to finish point
             priority = newDistance + heuristic # priority is the sum of the distance and heuristic
 
@@ -469,8 +493,8 @@ def astar(maze: list[list[str]]):
                 heapq.heappush(pQueue, (priority, newDistance, neighbor)) # add neighbor to the priority queue with updated distance and priority
     
     endTime = time.perf_counter() - startTime # for benchmarking
-    if openCells > 0:
-        explorationRatio = (nodesExplored / openCells) * 100
+    if walkableCells > 0:
+        explorationRatio = (nodesExplored / walkableCells) * 100
     else:
         explorationRatio = 0
     
@@ -482,7 +506,7 @@ def astar(maze: list[list[str]]):
         "pathLength": pathLength,
         "pathCost": pathCost,  # Get the cost to reach the finish point, if it exists
         "maxFrontier": maxFrontier,
-        "openCells": openCells,
+        "walkableCells": walkableCells,
         "explorationRatio": explorationRatio,
         "runtime": endTime * 1000  # make it readable in milliseconds
     }
@@ -493,16 +517,16 @@ def astar(maze: list[list[str]]):
 # Now will run the code entirely
 
 while True:
-    p = input("\nWhich maze would you like to solve? (1-4) or type 0 to quit: ")
+    p = input("\nWhich maze would you like to solve? (1-6) or type 0 to quit: ")
 
     if not p.isdigit():
-        print("Please enter a valid number between 1-4 or 0 to quit.")
+        print("Please enter a valid number between 1-6 or 0 to quit.")
         continue
 
     p = int(p)
 
-    if p < 0 or p > 4:
-        print("Please enter a valid number between 1-4 or 0 to quit.")
+    if p < 0 or p > 6:
+        print("Please enter a valid number between 1-6 or 0 to quit.")
         continue
 
     if p == 0:
@@ -556,7 +580,7 @@ while True:
         if "pathCost" in result:
             print(f"Path Cost: {result['pathCost']}")
         print(f"Max Frontier Size: {result['maxFrontier']}")
-        print(f"Open Cells: {result['openCells']}")
+        print(f"Walkable Cells: {result['walkableCells']}")
         print(f"Exploration Ratio: {result['explorationRatio']:.2f}%")
         print(f"Runtime: {result['runtime']:.2f} ms")
 
